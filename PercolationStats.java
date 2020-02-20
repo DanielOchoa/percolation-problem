@@ -5,13 +5,14 @@
  **************************************************************************** */
 
 import edu.princeton.cs.algs4.StdOut;
+import edu.princeton.cs.algs4.StdRandom;
 import edu.princeton.cs.algs4.StdStats;
 
 public class PercolationStats {
     private int n;
     private int T;
-    private Percolation[] percs;
     private double[] fracOfOpenSites;
+    private double[] openSiteCountList;
 
     // perform independent trials on a n-by-n grid
     public PercolationStats(int gridSize, int trials) {
@@ -19,10 +20,17 @@ public class PercolationStats {
             throw new IllegalArgumentException("Passed args less than zero!");
         n = gridSize;
         T = trials;
-
-        percs = new Percolation[T];
+        openSiteCountList = new double[T];
+        Percolation currentPerc;
         for (int i = 0; i < T; i++) {
-            percs[i] = new Percolation(n);
+            currentPerc = new Percolation(n);
+            while (!currentPerc.percolates()) {
+                int col = StdRandom.uniform(n) + 1;
+                int row = StdRandom.uniform(n) + 1;
+                // no need to check if it's open, as this will keep running until it percolates
+                currentPerc.open(row, col);
+            }
+            openSiteCountList[i] = currentPerc.numberOfOpenSites();
         }
     }
 
@@ -61,12 +69,13 @@ public class PercolationStats {
     }
 
     private double[] fracOfOpenSites() {
+        // cached
         if (fracOfOpenSites != null) {
             return fracOfOpenSites;
         }
-        fracOfOpenSites = new double[percs.length];
-        for (int i = 0; i < percs.length; i++) {
-            fracOfOpenSites[i] = percs[i].numberOfOpenSites() / (double) n * n;
+        fracOfOpenSites = new double[T];
+        for (int i = 0; i < T; i++) {
+            fracOfOpenSites[i] = openSiteCountList[i] / ((double) n * n);
         }
         return fracOfOpenSites;
     }

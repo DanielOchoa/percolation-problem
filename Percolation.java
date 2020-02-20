@@ -57,7 +57,6 @@ public class Percolation {
 
     // returns the number of open sites (1 == open)
     public int numberOfOpenSites() {
-        // StdOut.println("requested numberOfOpenSites: " + noOfOpenSites);
         return noOfOpenSites;
     }
 
