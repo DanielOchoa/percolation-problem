@@ -13,12 +13,12 @@ public class Percolation {
     private WeightedQuickUnionUF uf;
     private int indexOfTopVirtualNode;
     private int indexOfBottomVirtualNode;
-    private int[] sitesAtBottom;
+    private int[] openSitesAtBottom;
 
     public Percolation(int n) {
         if (n <= 0) throw new IllegalArgumentException("You must pass a number > than 0");
         size = n;
-        sitesAtBottom = new int[size];
+        openSitesAtBottom = new int[size];
         grid = new boolean[n][n];
         noOfOpenSites = 0;
         for (int i = 0; i < n; i++) {
@@ -83,17 +83,30 @@ public class Percolation {
         }
 
         if (row == size - 1) {
-            sitesAtBottom[col] = site;
+            // keep track of sites at bottom row, using col as index.
+            openSitesAtBottom[col] = site;
         }
     }
 
-    // is the site (row, col) open?
+    /**
+     * Is the site open?
+     *
+     * @param row row
+     * @param col col
+     * @return boolean
+     */
     public boolean isOpen(int row, int col) {
         validateBounds(row, col);
         return grid[row - 1][col - 1];
     }
 
-    // is the site full (row, col) (closed?)
+    /**
+     * Is the site full? As in, is it full of water (open and full).
+     *
+     * @param row row
+     * @param col col
+     * @return boolean
+     */
     public boolean isFull(int row, int col) {
         validateBounds(row, col);
         row--;
@@ -108,14 +121,20 @@ public class Percolation {
         return noOfOpenSites;
     }
 
-    // does the grid percolate? Basically, our virtual sites need to be linked!
+    /**
+     * Does the grid percolate? We can tell if the virtual top site is connected to the bottom
+     * virtual site.
+     *
+     * @return boolean
+     */
     public boolean percolates() {
-        // makes sure to connect any full node in last row to bottom virtual node.
-        // NOTE: edge case is handled for when size is 1.
-        for (int i = 0; i < sitesAtBottom.length; i++) {
-            if (sitesAtBottom[i] != 0 || size == 1) {
-                if (uf.connected(sitesAtBottom[i], indexOfTopVirtualNode)) {
-                    uf.union(indexOfBottomVirtualNode, sitesAtBottom[i]);
+        // makes sure to connect any full (isFull) node in last row to bottom virtual node.
+        // NOTE: edge case is handled for when size is 1. Doesn't seem to be a good solution
+        // to make it efficient but I can't think of another way right now.
+        for (int i = 0; i < openSitesAtBottom.length; i++) {
+            if (openSitesAtBottom[i] != 0 || size == 1) {
+                if (uf.connected(openSitesAtBottom[i], indexOfTopVirtualNode)) {
+                    uf.union(indexOfBottomVirtualNode, openSitesAtBottom[i]);
                 }
             }
         }
