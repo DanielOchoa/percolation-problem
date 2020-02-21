@@ -9,26 +9,24 @@ import edu.princeton.cs.algs4.StdRandom;
 import edu.princeton.cs.algs4.StdStats;
 
 public class PercolationStats {
-    private int n;
-    private int T;
-    private double[] fracOfOpenSites;
+    private int gridSize;
+    private int iterations;
+    // private double[] fracOfOpenSites;
     private double[] openSiteCountList;
 
     // perform independent trials on a n-by-n grid
-    public PercolationStats(int gridSize, int trials) {
-        if (gridSize <= 0 || trials <= 0)
+    public PercolationStats(int gSize, int trials) {
+        if (gSize <= 0 || trials <= 0)
             throw new IllegalArgumentException("Passed args less than zero!");
-        n = gridSize;
-        T = trials;
-        openSiteCountList = new double[T];
+        gridSize = gSize;
+        iterations = trials;
+        openSiteCountList = new double[trials];
         Percolation currentPerc;
-        for (int i = 0; i < T; i++) {
-            currentPerc = new Percolation(n);
+        for (int i = 0; i < trials; i++) {
+            currentPerc = new Percolation(gridSize);
             while (!currentPerc.percolates()) {
-                int col = StdRandom.uniform(n) + 1;
-                int row = StdRandom.uniform(n) + 1;
                 // no need to check if it's open, as this will keep running until it percolates
-                currentPerc.open(row, col);
+                currentPerc.open(StdRandom.uniform(gridSize) + 1, StdRandom.uniform(gridSize) + 1);
             }
             openSiteCountList[i] = currentPerc.numberOfOpenSites();
         }
@@ -46,12 +44,16 @@ public class PercolationStats {
 
     // low endpoint of 95% confidence interval
     public double confidenceLo() {
-        return mean() - ((1.96 * stddev()) / Math.sqrt(T));
+        return StdStats.mean(fracOfOpenSites()) - ((1.96 * StdStats.stddev(fracOfOpenSites()))
+                / Math
+                .sqrt(iterations));
     }
 
     // high endpoint of 95% confidence interval
     public double confidenceHi() {
-        return mean() + ((1.96 * stddev()) / Math.sqrt(T));
+        return StdStats.mean(fracOfOpenSites()) + ((1.96 * StdStats.stddev(fracOfOpenSites()))
+                / Math
+                .sqrt(iterations));
     }
 
     // test client (see below)
@@ -69,13 +71,9 @@ public class PercolationStats {
     }
 
     private double[] fracOfOpenSites() {
-        // cached
-        if (fracOfOpenSites != null) {
-            return fracOfOpenSites;
-        }
-        fracOfOpenSites = new double[T];
-        for (int i = 0; i < T; i++) {
-            fracOfOpenSites[i] = openSiteCountList[i] / ((double) n * n);
+        double[] fracOfOpenSites = new double[iterations];
+        for (int i = 0; i < iterations; i++) {
+            fracOfOpenSites[i] = openSiteCountList[i] / ((double) gridSize * gridSize);
         }
         return fracOfOpenSites;
     }

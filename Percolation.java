@@ -7,21 +7,23 @@
 import edu.princeton.cs.algs4.WeightedQuickUnionUF;
 
 public class Percolation {
-    private int[][] grid;
+    private boolean[][] grid; // false == isOpen. true = is not open
     private int size;
     private int noOfOpenSites;
     private WeightedQuickUnionUF uf;
     private int indexOfTopVirtualNode;
     private int indexOfBottomVirtualNode;
+    private int[] sitesAtBottom;
 
     public Percolation(int n) {
         if (n <= 0) throw new IllegalArgumentException("You must pass a number > than 0");
         size = n;
-        grid = new int[n][n];
+        sitesAtBottom = new int[size];
+        grid = new boolean[n][n];
         noOfOpenSites = 0;
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
-                grid[i][j] = 0;
+                grid[i][j] = false;
             }
         }
         // why add two? represents our two virtual sites. first of two, top node, second of two, bottom node.
@@ -37,22 +39,68 @@ public class Percolation {
         validateBounds(row, col);
         row--;
         col--;
-        if (grid[row][col] == 1) return;
+        if (grid[row][col]) return;
 
-        grid[row][col] = 1;
+        grid[row][col] = true;
         noOfOpenSites++;
-        connectToAdjacentSites(row, col);
+
+        connectAdjacentSites(row, col);
+    }
+
+    /**
+     * By connecting sites, we make sure they get filled or isFull will return true for them.
+     *
+     * @param row row
+     * @param col col
+     */
+    private void connectAdjacentSites(int row, int col) {
+        int site = xyToPosition(row, col);
+
+        // drip from top
+        if (row == 0) {
+            uf.union(indexOfTopVirtualNode, site);
+        }
+
+        // check adjacent blocks, if is open, and is full
+        // top
+        if (row - 1 >= 0 && grid[row - 1][col]) {
+            uf.union(site, xyToPosition(row - 1, col));
+        }
+
+        // left
+        if (col - 1 >= 0 && grid[row][col - 1]) {
+            uf.union(site, xyToPosition(row, col - 1));
+        }
+
+        // bottom
+        if (row + 1 < size && grid[row + 1][col]) {
+            uf.union(site, xyToPosition(row + 1, col));
+        }
+
+        // right
+        if (col + 1 < size && grid[row][col + 1]) {
+            uf.union(site, xyToPosition(row, col + 1));
+        }
+
+        if (row == size - 1) {
+            sitesAtBottom[col] = site;
+        }
     }
 
     // is the site (row, col) open?
     public boolean isOpen(int row, int col) {
         validateBounds(row, col);
-        return grid[row - 1][col - 1] == 1;
+        return grid[row - 1][col - 1];
     }
 
     // is the site full (row, col) (closed?)
     public boolean isFull(int row, int col) {
-        return !isOpen(row, col);
+        validateBounds(row, col);
+        row--;
+        col--;
+        if (!grid[row][col]) return false;
+        int site = xyToPosition(row, col);
+        return uf.connected(site, indexOfTopVirtualNode);
     }
 
     // returns the number of open sites (1 == open)
@@ -62,6 +110,15 @@ public class Percolation {
 
     // does the grid percolate? Basically, our virtual sites need to be linked!
     public boolean percolates() {
+        // makes sure to connect any full node in last row to bottom virtual node.
+        // NOTE: edge case is handled for when size is 1.
+        for (int i = 0; i < sitesAtBottom.length; i++) {
+            if (sitesAtBottom[i] != 0 || size == 1) {
+                if (uf.connected(sitesAtBottom[i], indexOfTopVirtualNode)) {
+                    uf.union(indexOfBottomVirtualNode, sitesAtBottom[i]);
+                }
+            }
+        }
         return uf.connected(indexOfTopVirtualNode, indexOfBottomVirtualNode);
     }
 
@@ -98,45 +155,5 @@ public class Percolation {
         if (row > size || row <= 0 || col > size || col <= 0)
             throw new IllegalArgumentException(
                     "row or col is out of bounds for grid: (" + row + ", " + col + ")");
-    }
-
-    /**
-     * Create connections using `union(x, y)` to adjacent sites IF they are open, and if they
-     * exist.
-     */
-    private void connectToAdjacentSites(int row, int col) {
-        int site = xyToPosition(row, col);
-        // process top site and check if site above is open.
-        if ((row - 1) >= 0 && (row - 1) < size && grid[row - 1][col] == 1) {
-            uf.union(site, xyToPosition(row - 1, col));
-        }
-
-        // process right site.
-        if ((col + 1) < size && grid[row][col + 1] == 1) {
-            uf.union(site, xyToPosition(row, col + 1));
-        }
-
-        // process bottom site
-        if ((row + 1) < size && (row + 1) >= 0 && grid[row + 1][col] == 1) {
-            uf.union(site, xyToPosition(row + 1, col));
-        }
-
-        // process left site
-        if ((col - 1) >= 0 && (col - 1) < size && grid[row][col - 1] == 1) {
-            uf.union(site, xyToPosition(row, col - 1));
-        }
-
-        // connect to virtual top, or virtual bottom, depending on row site is. It is not mutually
-        // exclusive in the case of a 1 by 1 grid.
-        if (row == 0) {
-            // connect to indexOfTopVirtualNode
-            // StdOut.println("Virtual connection:: " + site + ", " + indexOfTopVirtualNode);
-            uf.union(site, indexOfTopVirtualNode);
-        }
-
-        if (row == size - 1) {
-            uf.union(site, indexOfBottomVirtualNode);
-            // StdOut.println("Virtual connection:: " + site + ", " + indexOfBottomVirtualNode);
-        }
     }
 }
